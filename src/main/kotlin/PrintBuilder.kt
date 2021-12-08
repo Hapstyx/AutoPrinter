@@ -1,6 +1,6 @@
 import java.io.File
-import kotlin.streams.toList
 
+@Suppress("unused")
 class PrintBuilder {
 
     enum class Justification {LEFT, CENTER, RIGHT}
@@ -9,19 +9,15 @@ class PrintBuilder {
     private val printSequences = mutableListOf<Byte>()
     private var invertedPrintingMode = false
 
-    fun executePrint(printer: File) {
-        printer.writeBytes(printSequences.toByteArray())
-    }
+    fun executePrint(printer: File) = printer.writeBytes(printSequences.toByteArray()).let { this }
 
-    fun addCustomSequence(byteSequence: Iterable<Byte>): PrintBuilder {
-        printSequences.addAll(byteSequence)
+    fun reset() = printSequences.clear().let { this }
 
-        return this
-    }
+    fun addCustomSequence(byteSequence: Iterable<Byte>) = printSequences.addAll(byteSequence).let { this }
 
-    fun addCustomSequence(byteSequence: ByteArray): PrintBuilder {
-        return addCustomSequence(byteSequence.asList())
-    }
+    fun addCustomSequence(byteSequence: ByteArray) = addCustomSequence(byteSequence.asList())
+
+    fun cut(feedLines: Int = 0xFF) = printSequences.addAll(listOf(0x1D, 0x56, 0x42, feedLines.toByte())).let { this }
 
     fun setFontScale(height: Int, width: Int): PrintBuilder {
         if (height !in 1..8 || width !in 1..8)
@@ -32,18 +28,12 @@ class PrintBuilder {
         return this
     }
 
-    fun printText(text: String): PrintBuilder {
-        printSequences.addAll(text.chars().mapToObj { it.toByte() }.toList())
+    fun printText(text: String) = printSequences.addAll(text.chars().mapToObj { it.toByte() }.toList()).let { this }
 
-        return this
-    }
-
-    fun toggleInvertedPrintingMode(): PrintBuilder {
+    fun toggleInvertedPrintingMode() =
         printSequences.addAll(listOf(0x1D, 0x42, if (!invertedPrintingMode) 0x01 else 0x00))
-        invertedPrintingMode = !invertedPrintingMode
-
-        return this
-    }
+            .also { invertedPrintingMode = !invertedPrintingMode }
+            .let { this }
 
     fun setJustification(justification: Justification): PrintBuilder {
         val justificationByte: Byte = when (justification) {
@@ -92,12 +82,6 @@ class PrintBuilder {
             BitImagePrintMode.QUADRUPLE -> 0x03
         }
         printSequences.addAll(listOf(0x1D, 0x2F, bitImagePrintModeByte))
-
-        return this
-    }
-
-    fun cut(feedLines: Int = 0xFF): PrintBuilder {
-        printSequences.addAll(listOf(0x1D, 0x56, 0x42, feedLines.toByte()))
 
         return this
     }

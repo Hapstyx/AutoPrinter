@@ -28,7 +28,7 @@ class PrintBuilder {
         return this
     }
 
-    fun printText(text: String) = printSequences.addAll(text.chars().mapToObj { it.toByte() }.toList()).let { this }
+    fun printText(text: String) = printSequences.addAll(text.encodeToByteArray().asList()).let { this }
 
     fun toggleInvertedPrintingMode() =
         printSequences.addAll(listOf(0x1D, 0x42, if (!invertedPrintingMode) 0x01 else 0x00))

@@ -1,4 +1,5 @@
 import java.io.File
+import kotlin.experimental.inv
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.pow
@@ -56,7 +57,7 @@ class BitImage {
             fun ByteArray.decodeToInt() = foldIndexed(0) { index, acc, byte ->
                 acc + 256.0.pow(index.toDouble()).toInt() * (byte.toInt() and 0xFF)
             }
-            fun Int.makeDivisibleBy(n: Int) = this + (n - this % n)
+            fun Int.makeDivisibleBy(n: Int) = this + (n - this % n) % n
 
             // check magic number
             if (!read(0, 2).contentEquals(byteArrayOf(0x42, 0x4D)))
@@ -98,10 +99,10 @@ class BitImage {
                     }
                 }
                 .let { list ->
-                    List(list.size * list.first().size) { list[it % list.size][it / list.size] }
+                    List(list.size * list.first().size) { list[it % list.size][it / list.size].inv() }
                 }
 
-            return BitImage(bitmapWidth.makeDivisibleBy(8), bitmapHeight.absoluteValue.makeDivisibleBy(8) / 8, imageData)
+            return BitImage(bitmapWidth.makeDivisibleBy(8) / 8, bitmapHeight.absoluteValue.makeDivisibleBy(8) / 8, imageData)
         }
     }
 

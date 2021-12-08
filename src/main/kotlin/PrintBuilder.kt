@@ -1,4 +1,5 @@
 import java.io.File
+import kotlin.streams.toList
 
 class PrintBuilder {
 
@@ -6,9 +7,20 @@ class PrintBuilder {
     enum class BitImagePrintMode {NORMAL, DOUBLE_WIDTH, DOUBLE_HEIGHT, QUADRUPLE}
 
     private val printSequences = mutableListOf<Byte>()
+    private var invertedPrintingMode = false
 
     fun executePrint(printer: File) {
         printer.writeBytes(printSequences.toByteArray())
+    }
+
+    fun addCustomSequence(byteSequence: Iterable<Byte>): PrintBuilder {
+        printSequences.addAll(byteSequence)
+
+        return this
+    }
+
+    fun addCustomSequence(byteSequence: ByteArray): PrintBuilder {
+        return addCustomSequence(byteSequence.asList())
     }
 
     fun setFontScale(height: Int, width: Int): PrintBuilder {
@@ -26,6 +38,13 @@ class PrintBuilder {
         return this
     }
 
+    fun toggleInvertedPrintingMode(): PrintBuilder {
+        printSequences.addAll(listOf(0x1D, 0x42, if (!invertedPrintingMode) 0x01 else 0x00))
+        invertedPrintingMode = !invertedPrintingMode
+
+        return this
+    }
+
     fun setJustification(justification: Justification): PrintBuilder {
         val justificationByte: Byte = when (justification) {
             Justification.LEFT -> 0x00
@@ -37,8 +56,30 @@ class PrintBuilder {
         return this
     }
 
+    fun defineNVBitImage(imageNumber: Int, bitImage: BitImage): PrintBuilder {
+        printSequences.addAll(listOf(0x1C, 0x71, imageNumber.toByte()))
+        printSequences.addAll(listOf((bitImage.xSize % 0xFF).toByte(), (bitImage.xSize / 0xFF).toByte()))
+        printSequences.addAll(listOf((bitImage.ySize % 0xFF).toByte(), (bitImage.ySize / 0xFF).toByte()))
+        printSequences.addAll(bitImage.imageData)
+
+        return this
+    }
+
+    fun printNVBitImage(imageNumber: Int, bitImagePrintMode: BitImagePrintMode): PrintBuilder {
+        val bitImagePrintModeByte: Byte = when (bitImagePrintMode) {
+            BitImagePrintMode.NORMAL -> 0x00
+            BitImagePrintMode.DOUBLE_WIDTH -> 0x01
+            BitImagePrintMode.DOUBLE_HEIGHT -> 0x02
+            BitImagePrintMode.QUADRUPLE -> 0x03
+        }
+        printSequences.addAll(listOf(0x1C, 0x70, imageNumber.toByte(), bitImagePrintModeByte))
+
+        return this
+    }
+
     fun defineBitImage(bitImage: BitImage): PrintBuilder {
-        printSequences.addAll(bitImage.getImage())
+        printSequences.addAll(listOf(0x1D, 0x2A, bitImage.xSize.toByte(), bitImage.ySize.toByte()))
+        printSequences.addAll(bitImage.imageData)
 
         return this
     }

@@ -6,35 +6,79 @@ class PrintBuilder {
     enum class Justification {LEFT, CENTER, RIGHT}
     enum class BitImagePrintMode {NORMAL, DOUBLE_WIDTH, DOUBLE_HEIGHT, QUADRUPLE}
 
+    /** Holds the sequences that will be sent to the printer */
     private val printSequences = mutableListOf<Byte>()
+    /** Whether inverted printing is currently active or not */
     private var invertedPrintingMode = false
 
+    /**
+     * Sends all currently saved sequences to the printer. This does _NOT_ empty the queue.
+     * @param printer the file (or device) to send the data to
+     * @return this builder instance
+     * @see reset
+     */
     fun executePrint(printer: File) = printer.writeBytes(printSequences.toByteArray()).let { this }
 
+    /**
+     * Clears all saved sequences.
+     * @return this builder instance
+     */
     fun reset() = printSequences.clear().let { this }
 
+    /**
+     * Adds the specified sequence to the end of the queue.
+     * @param byteSequence the sequence to append to the queue
+     * @return this builder instance
+     */
     fun addCustomSequence(byteSequence: Iterable<Byte>) = printSequences.addAll(byteSequence).let { this }
 
+    /**
+     * Adds the specified sequence to the end of the queue.
+     * @param byteSequence the sequence to append to the queue
+     * @return this builder instance
+     */
     fun addCustomSequence(byteSequence: ByteArray) = addCustomSequence(byteSequence.asList())
 
+    /**
+     * Feeds paper and cuts it.
+     * @param feedLines how many dots to feed (must be in 0..255, default 255)
+     * @return this builder instance
+     */
     fun cut(feedLines: Int = 0xFF) = printSequences.addAll(listOf(0x1D, 0x56, 0x42, feedLines.toByte())).let { this }
 
-    fun setFontScale(height: Int, width: Int): PrintBuilder {
-        if (height !in 1..8 || width !in 1..8)
-            error("Scales must be in range 1..8")
-
+    /**
+     * Sets the scale of printed characters.
+     * @param height how much to scale a character vertically (normal 1, max 8)
+     * @param width  how much to scale a character horizontally (normal 1, max 8)
+     * @return this builder instance
+     */
+    fun setFontScale(height: Int, width: Int) =
         printSequences.addAll(listOf(0x1D, 0x21, ((height - 1) + 0x10 * (width - 1)).toByte()))
+            .let { this }
 
-        return this
-    }
-
+    /**
+     * Prints the given string. Only ASCII characters will be printed correctly; other encodings are not
+     * currently supported, however, some escape sequences such as `\n` are supported.
+     * @param text the text to append to the queue
+     * @return this builder instance
+     */
     fun printText(text: String) = printSequences.addAll(text.encodeToByteArray().asList()).let { this }
 
+    /**
+     * Toggles the inverted printing mode. All dots that were printed as white will be printed
+     * as black and vice versa.
+     * @return this builder instance
+     */
     fun toggleInvertedPrintingMode() =
         printSequences.addAll(listOf(0x1D, 0x42, if (!invertedPrintingMode) 0x01 else 0x00))
             .also { invertedPrintingMode = !invertedPrintingMode }
             .let { this }
 
+    /**
+     * Set the justification to one of three possibilities (normal LEFT).
+     * @param justification the justification to use
+     * @return this builder instance
+     */
     fun setJustification(justification: Justification): PrintBuilder {
         val justificationByte: Byte = when (justification) {
             Justification.LEFT -> 0x00
@@ -46,6 +90,12 @@ class PrintBuilder {
         return this
     }
 
+    /**
+     * Defines a bit image in non-volatile (NV) storage. This does _NOT_ print the image.
+     * @param imageNumber the image to define (min 1, max 255)
+     * @param bitImage    the bit image data
+     * @return this builder instance
+     */
     fun defineNVBitImage(imageNumber: Int, bitImage: BitImage): PrintBuilder {
         printSequences.addAll(listOf(0x1C, 0x71, imageNumber.toByte()))
         printSequences.addAll(listOf((bitImage.xSize % 0xFF).toByte(), (bitImage.xSize / 0xFF).toByte()))
@@ -55,6 +105,12 @@ class PrintBuilder {
         return this
     }
 
+    /**
+     * Prints a defined bit image from non-volatile (NV) storage.
+     * @param imageNumber       the image to print (min 1, max 255)
+     * @param bitImagePrintMode if and how to print / stretch the image
+     * @return this builder instance
+     */
     fun printNVBitImage(imageNumber: Int, bitImagePrintMode: BitImagePrintMode): PrintBuilder {
         val bitImagePrintModeByte: Byte = when (bitImagePrintMode) {
             BitImagePrintMode.NORMAL -> 0x00
@@ -67,6 +123,11 @@ class PrintBuilder {
         return this
     }
 
+    /**
+     * Defines a bit image in volatile storage. This does _NOT_ print the image.
+     * @param bitImage the bit image data
+     * @return this builder instance
+     */
     fun defineBitImage(bitImage: BitImage): PrintBuilder {
         printSequences.addAll(listOf(0x1D, 0x2A, bitImage.xSize.toByte(), bitImage.ySize.toByte()))
         printSequences.addAll(bitImage.imageData)
@@ -74,6 +135,11 @@ class PrintBuilder {
         return this
     }
 
+    /**
+     * Prints a defined bit image from volatile storage.
+     * @param bitImagePrintMode if and how to print / stretch the image
+     * @return this builder instance
+     */
     fun printBitImage(bitImagePrintMode: BitImagePrintMode): PrintBuilder {
         val bitImagePrintModeByte: Byte = when (bitImagePrintMode) {
             BitImagePrintMode.NORMAL -> 0x00

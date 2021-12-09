@@ -47,6 +47,7 @@ fun readFromBitmapFile(file: File): BitImage {
     val imageDataOffset = read(10).decodeToInt()
     val bitmapWidth = read(18).decodeToInt()
     val bitmapHeight = read(22).decodeToInt()
+    val invertedColors = read(imageDataOffset - 8).decodeToInt() == 0
     val imageData = read(imageDataOffset, fileBytes.size - imageDataOffset)
         .toList()
         .chunked(ceil(bitmapWidth / 8.0).toInt().makeDivisibleBy(4)) // padded to be divisible by 4
@@ -72,8 +73,10 @@ fun readFromBitmapFile(file: File): BitImage {
             }
         }
         .let { list ->
-            // TODO: parse color table and only invert accordingly
-            List(list.size * list.first().size) { list[it % list.size][it / list.size].inv() }
+            List(list.size * list.first().size) {
+                list[it % list.size][it / list.size]
+                    .let { byte -> if (invertedColors) byte.inv() else byte }
+            }
         }
 
     return BitImage(

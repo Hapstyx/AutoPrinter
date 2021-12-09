@@ -39,24 +39,27 @@ fun readFromBitmapFile(file: File): BitImage {
 
             list
         }
-        .map { list -> list
-            .take(bitmapWidth.makeDivisibleBy(8) / 8)
-            .flatMap { byte -> List(8) { (128 shr it) and byte.toInt() != 0 } }
-        }
-        .chunked(8)
-        .map { list ->
-            List(list.first().size) {
+        .map { it.take(bitmapWidth.makeDivisibleBy(8) / 8) }
+        .chunked(8) { list ->
+            List(list.first().size * 8) {
                 var byte: Byte = 0
 
-                for (i in 0 until 8)
-                    byte = byte.plus(if (list[i][it]) 128 shr i else 0).toByte()
+                for (i in 0 until 8) {
+                    val bitSet = list[i][it / 8].toInt() and (128 shr it % 8) != 0
+                    byte = byte.plus(if (bitSet) 128 shr i else 0).toByte()
+                }
 
                 byte
             }
         }
         .let { list ->
+            // TODO: parse color table and only invert accordingly
             List(list.size * list.first().size) { list[it % list.size][it / list.size].inv() }
         }
 
-    return BitImage(bitmapWidth.makeDivisibleBy(8) / 8, bitmapHeight.absoluteValue.makeDivisibleBy(8) / 8, imageData)
+    return BitImage(
+        bitmapWidth.makeDivisibleBy(8) / 8,
+        bitmapHeight.absoluteValue.makeDivisibleBy(8) / 8,
+        imageData
+    )
 }

@@ -52,18 +52,21 @@ fun readFromBitmapFile(file: File): BitImage {
         .toList()
         .chunked(ceil(bitmapWidth / 8.0).toInt().makeDivisibleBy(4)) // padded to be divisible by 4
         .let {
+            // flip image if bitmap is a "bottom-up-bitmap"
             val list = if (bitmapHeight > 0) it.asReversed().toMutableList() else it.toMutableList()
 
+            // append rows to make bitmap height divisible by 8
             for (i in list.size until list.size.makeDivisibleBy(8))
                 list.add(List(list.first().size) { 0xFF.toByte() })
 
             list
         }
-        .map { it.take(bitmapWidth.makeDivisibleBy(8) / 8) }
+        .map { it.take(bitmapWidth.makeDivisibleBy(8) / 8) } // remove excess padding
         .chunked(8) { list ->
             List(list.first().size * 8) {
                 var byte: Byte = 0
 
+                // convert groups of horizontally aligned pixels into groups of vertically aligned pixels
                 for (i in 0 until 8) {
                     val bitSet = list[i][it / 8].toInt() and (128 shr it % 8) != 0
                     byte = byte.plus(if (bitSet) 128 shr i else 0).toByte()
@@ -74,8 +77,8 @@ fun readFromBitmapFile(file: File): BitImage {
         }
         .let { list ->
             List(list.size * list.first().size) {
-                list[it % list.size][it / list.size]
-                    .let { byte -> if (invertedColors) byte.inv() else byte }
+                list[it % list.size][it / list.size] // order bytes top to bottom, left to right
+                    .let { byte -> if (invertedColors) byte.inv() else byte } // invert colors if needed
             }
         }
 

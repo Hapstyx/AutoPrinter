@@ -57,12 +57,33 @@ class PrintBuilder {
             .let { this }
 
     /**
-     * Prints the given string. Only ASCII characters will be printed correctly; other encodings are not
-     * currently supported, however, some escape sequences such as `\n` are supported.
-     * @param text the text to append to the queue
+     * Prints the given string. ASCII characters will always be printed correctly, however,
+     * the printer only supports certain encodings for the latin alphabet. Refer to
+     * [CodePage] for a list of all currently supported encodings. CP-1252 is assumed as the
+     * default encoding. Some escape sequences which translate directly to an ASCII control
+     * sequence such as `\n` are supported as well.
+     * @param text     the text to append to the queue
+     * @param codePage the code page to use for decoding
      * @return this builder instance
      */
-    fun printText(text: String) = printSequences.addAll(text.encodeToByteArray().asList()).let { this }
+    fun printText(text: String, codePage: CodePage = CodePage.CP1252): PrintBuilder {
+        val codeTable = when (codePage) {
+            CodePage.CP437  ->  0
+            CodePage.CP850  ->  2
+            CodePage.CP860  ->  3
+            CodePage.CP863  ->  4
+            CodePage.CP865  ->  5
+            CodePage.CP1252 -> 16
+            CodePage.CP866  -> 17
+            CodePage.CP852  -> 18
+            CodePage.CP858  -> 19
+        }
+
+        printSequences.addAll(0x1B, 0x74, codeTable.toByte())
+        printSequences.addAll(decodeWithCodeTable(text, codePage))
+
+        return this
+    }
 
     /**
      * Toggles the inverted printing mode. All dots that were printed as white will be printed

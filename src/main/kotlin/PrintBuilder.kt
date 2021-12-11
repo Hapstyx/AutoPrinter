@@ -16,16 +16,14 @@ class PrintBuilder {
     /**
      * Sends all currently saved sequences to the printer. This does _NOT_ empty the queue.
      * @param printer the file (or device) to send the data to
-     * @return this builder instance
      * @see reset
      */
-    fun executePrint(printer: File) = printer.writeBytes(printSequences.toByteArray()).let { this }
+    fun executePrint(printer: File) = printer.writeBytes(printSequences.toByteArray())
 
     /**
      * Clears all saved sequences.
-     * @return this builder instance
      */
-    fun reset() = printSequences.clear().let { this }
+    fun reset() = printSequences.clear()
 
     /**
      * Adds the specified sequence to the end of the queue.

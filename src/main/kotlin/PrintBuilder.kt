@@ -10,6 +10,8 @@ class PrintBuilder {
     private val printSequences = mutableListOf<Byte>()
     /** Whether inverted printing is currently active or not */
     private var invertedPrintingMode = false
+    /** Whether upside down printing is currently active or not */
+    private var upsideDownPrintingMode = false
 
     /**
      * Sends all currently saved sequences to the printer. This does _NOT_ empty the queue.
@@ -72,6 +74,15 @@ class PrintBuilder {
     fun toggleInvertedPrintingMode() =
         printSequences.addAll(0x1D, 0x42, if (!invertedPrintingMode) 0x01 else 0x00)
             .also { invertedPrintingMode = !invertedPrintingMode }
+            .let { this }
+
+    /**
+     * Toggles the upside down printing mode. All lines will be rotated by 180° and then printed.
+     * @return this builder instance
+     */
+    fun toggleUpsideDownPrintingMode() =
+        printSequences.addAll(0x1B, 0x7B, if (!upsideDownPrintingMode) 0x01 else 0x00)
+            .also { upsideDownPrintingMode = !upsideDownPrintingMode }
             .let { this }
 
     /**

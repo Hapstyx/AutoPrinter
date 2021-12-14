@@ -81,6 +81,7 @@ class PrintBuilder {
 
         printSequences.addAll(0x1B, 0x74, codeTable.toByte())
         printSequences.addAll(decodeWithCodeTable(text, codePage))
+        printSequences.addAll(0x1B, 0x64, 0x00)
 
         return this
     }

@@ -81,6 +81,12 @@ fun readFromBitmapFile(file: File): BitImage {
                     .let { byte -> if (invertedColors) byte.inv() else byte } // invert colors if needed
             }
         }
+        .mapIndexed { index, byte ->
+            if (index >= bitmapHeight.makeDivisibleBy(8) / 8 * bitmapWidth - 1)
+                byte.plus(0xFF shr (bitmapWidth.makeDivisibleBy(8) - bitmapWidth + 1)).toByte()
+            else
+                byte
+        }
 
     return BitImage(
         bitmapWidth.makeDivisibleBy(8) / 8,
